@@ -1,4 +1,5 @@
-const fs = require('fs');
+const fs = require("fs");
+const os = require("os");
 
 const filePath = "./input.txt";
 // const filePath = "./test-input.txt";
@@ -8,8 +9,9 @@ try {
   const leftArray = [];
   const rightArray = [];
 
-  for (const line of data.trim().split("\r\n")) {
+  for (const line of data.trim().split(os.EOL)) {
     const [left, right] = line.split("   ");
+
     leftArray.push(parseInt(left));
     rightArray.push(parseInt(right));
   }
@@ -41,14 +43,14 @@ try {
       rightIndex += 1;
     }
 
-    let leftOccurance = 1;
+    let leftOccurrence = 1;
 
     while (i < leftArray.length && leftArray[i] === leftArray[i + 1]) {
-      leftOccurance += 1;
+      leftOccurrence += 1;
       i += 1;
     }
 
-    similarityScore += leftArray[i] * rightOccurrence * leftOccurance;
+    similarityScore += leftArray[i] * rightOccurrence * leftOccurrence;
   }
 
   console.log("Similarity Score:", similarityScore);
