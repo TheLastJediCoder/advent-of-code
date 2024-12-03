@@ -1,5 +1,4 @@
 const fs = require("fs");
-const os = require("os");
 
 const filePath = "./input.txt";
 // const filePath = "./test-input.txt";
