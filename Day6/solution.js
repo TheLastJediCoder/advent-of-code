@@ -9,43 +9,13 @@ try {
   const map = data.split(os.EOL).map((d) => d.split(""));
   const rowCount = map.length;
   const colCount = map[0].length;
-
-  const directionIncrement = {
-    U: [-1, 0], // Up
-    R: [0, 1], // Right
-    D: [1, 0], // Down
-    L: [0, -1], // Left
-  };
-
-  function nextDirectionPatrol(coordinate, direction) {
-    switch (direction) {
-      case "U":
-        return patrol([coordinate[0] + 1, coordinate[1]], "R");
-      case "R":
-        return patrol([coordinate[0], coordinate[1] - 1], "D");
-      case "D":
-        return patrol([coordinate[0] - 1, coordinate[1]], "L");
-      case "L":
-        return patrol([coordinate[0], coordinate[1] + 1], "U");
-    }
-
-    return [0, 0];
-  }
-
-  function nextDirectionLoop(coordinate, nextCoordinate, direction) {
-    switch (direction) {
-      case "U":
-        return findLoop(coordinate, [nextCoordinate[0] + 1, nextCoordinate[1]], direction);
-      case "R":
-        return findLoop(coordinate, [nextCoordinate[0], nextCoordinate[1] - 1], direction);
-      case "D":
-        return findLoop(coordinate, [nextCoordinate[0] - 1, nextCoordinate[1]], direction);
-      case "L":
-        return findLoop(coordinate, [nextCoordinate[0], nextCoordinate[1] + 1], direction);
-    }
-
-    return 0;
-  }
+  const directions = [
+    [-1, 0],
+    [0, +1],
+    [+1, 0],
+    [0, -1],
+  ];
+  const distinctPositionVisited = new Set();
 
   function findStartingCoordinate() {
     for (let row = 0; row < rowCount; row++) {
@@ -55,87 +25,83 @@ try {
         }
       }
     }
-
-    return [0, 0];
   }
 
-  function isValidCoordinate(coordinate) {
-    return (
-      0 <= coordinate[0] &&
-      coordinate[0] < rowCount &&
-      0 <= coordinate[1] &&
-      coordinate[1] < colCount
-    );
+  function isValidCoordinate(row, col) {
+    return 0 <= row && row < rowCount && 0 <= col && col < colCount;
   }
 
-  function findLoop(startCoordinate, nextCoordinate, currentDirection, counter = 1) {
-    if (currentDirection === 'U') {
-      currentDirection = 'R';
-    } else if (currentDirection === 'R') {
-      currentDirection = 'D'
-    } else if (currentDirection === 'D') {
-      currentDirection = 'L';
-    } else if (currentDirection === 'L') {
-      currentDirection = 'U';
+  let [guardRow, guardCol] = findStartingCoordinate();
+  let guardDirection = 0;
+  let obstacleCount = 0;
+
+  while (isValidCoordinate(guardRow, guardCol)) {
+    let [rowInc, colInc] = directions[guardDirection];
+    let [nextRow, nextCol] = [guardRow + rowInc, guardCol + colInc];
+
+    if (map[guardRow][guardCol] !== "#") {
+      distinctPositionVisited.add(`${guardRow},${guardCol}`);
     }
 
-    const rowInc = directionIncrement[currentDirection][0];
-    const colInc = directionIncrement[currentDirection][1];
+    if (!isValidCoordinate(nextRow, nextCol)) {
+      break;
+    }
 
-    while (
-      isValidCoordinate(nextCoordinate) &&
-      map[nextCoordinate[0]][nextCoordinate[1]] !== "#"
-    ) {
-      console.log(nextCoordinate);
-      nextCoordinate = [nextCoordinate[0] + rowInc, nextCoordinate[1] + colInc];
-      if (startCoordinate[0] === nextCoordinate[0] && startCoordinate[1] === nextCoordinate[1]) {
-        return 1;
+    if (map[nextRow][nextCol] === "#") {
+      guardDirection = (guardDirection + 1) % 4;
+      [rowInc, colInc] = directions[guardDirection];
+      [nextRow, nextCol] = [guardRow + rowInc, guardCol + colInc];
+    }
+
+    [guardRow, guardCol] = [nextRow, nextCol];
+  }
+
+  [guardRow, guardCol] = findStartingCoordinate();
+  guardDirection = 0;
+
+  for (let row = 0; row < rowCount; row++) {
+    for (let col = 0; col < colCount; col++) {
+      if (map[row][col] !== ".") continue;
+
+      map[row][col] = "#";
+
+      const visitedLocations = new Set();
+
+      let currentRow = guardRow;
+      let currentCol = guardCol;
+      let currentDirection = guardDirection;
+
+      while (true) {
+        const guardState = `${currentRow},${currentCol},${currentDirection}`;
+
+        if (visitedLocations.has(guardState)) {
+          obstacleCount++;
+          break;
+        }
+
+        visitedLocations.add(guardState);
+
+        const nextGuardRow = currentRow + directions[currentDirection][0];
+        const nextGuardCol = currentCol + directions[currentDirection][1];
+
+        if (!isValidCoordinate(nextGuardRow, nextGuardCol)) {
+          break;
+        }
+
+        if (map[nextGuardRow][nextGuardCol] === "#") {
+          currentDirection = (currentDirection + 1) % 4;
+        } else {
+          currentRow = nextGuardRow;
+          currentCol = nextGuardCol;
+        }
       }
+
+      map[row][col] = ".";
     }
-
-    if (!isValidCoordinate(nextCoordinate))
-      return 0;
-
-    return nextDirectionLoop(startCoordinate, nextCoordinate, currentDirection);
   }
 
-  function patrol(coordinate = [0, 0], currentDirection) {
-    let distinctPositionCount = 0;
-    let obstructionCount = 0;
-
-    const rowInc = directionIncrement[currentDirection][0];
-    const colInc = directionIncrement[currentDirection][1];
-
-    while (
-      isValidCoordinate(coordinate) &&
-      map[coordinate[0]][coordinate[1]] !== "#"
-    ) {
-      const char = map[coordinate[0]][coordinate[1]];
-
-      if (char === "." || char === "^") {
-        distinctPositionCount += 1;
-      }
-
-      obstructionCount += findLoop(coordinate, coordinate, currentDirection);
-
-      map[coordinate[0]][coordinate[1]] = currentDirection;
-
-      coordinate = [coordinate[0] + rowInc, coordinate[1] + colInc];
-    }
-
-    if (!isValidCoordinate(coordinate))
-      return [distinctPositionCount, obstructionCount];
-
-    const tempCount = nextDirectionPatrol(coordinate, currentDirection);
-    distinctPositionCount += tempCount[0];
-    obstructionCount += tempCount[1];
-
-    return [distinctPositionCount, obstructionCount];
-  }
-
-  const startingCoordinate = findStartingCoordinate();
-
-  console.log(patrol(startingCoordinate, "U"));
+  console.log("Distinct position visited:", distinctPositionVisited.size);
+  console.log("Count of Obstacle:", obstacleCount);
 } catch (err) {
   console.error("Error reading the file:", err);
 }
