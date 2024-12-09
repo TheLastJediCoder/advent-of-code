@@ -1,8 +1,8 @@
 const fs = require("fs");
 const os = require("os");
 
-// const filePath = "./input.txt";
-const filePath = "./test-input.txt";
+const filePath = "./input.txt";
+// const filePath = "./test-input.txt";
 
 try {
   const data = fs.readFileSync(filePath, "utf8").split(os.EOL);
